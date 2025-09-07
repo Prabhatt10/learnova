@@ -4,4 +4,4 @@ const quizSchema = new mongoose.Schema ({
 
 });
 
-module.exports = model("quiz" , quizSchema);
+module.exports = mongoose.model("quiz" , quizSchema);

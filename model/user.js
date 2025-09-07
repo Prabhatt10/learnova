@@ -1,76 +1,62 @@
 const mongoose = require("mongoose");
-const nodemon = require("nodemon");
 
 const userSchema = new mongoose.Schema({
-    fullName : {
-        type : String,
-        required : true
+    userName: {
+        type: String,
+        required: true
     },
-    email : {
-        type : String,
-        required : true,
-        trim : true
+    email: {
+        type: String,
+        required: true,
+        trim: true
     },
-    password : {
-        type :String,
-        required : true,
+    password: {
+        type: String,
+        required: true
     },
-    confirmPassword : {
-        type : String ,
-        required : true
+    active: {
+        type: Boolean,
+        default: true
     },
-    active : {
-        type : Boolean,
-        default : true
+    userType: {
+        type: String,
+        enum: ["created", "joined"]
     },
-    userType : {
-        type : String,
-        enum : ["created" , "joined"]
+    classroom: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "classroom"
+    }],
+    progress: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "class"
+    }],
+    attendance: [{   // fixed spelling
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "class"
+    }],
+    messages: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "message"
+    }],
+    additionalDetails: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "setting",
+        default: null
     },
-    classroom : [
-        {
-            type : mongoose.Schema.Types.ObjectId,
-            ref : "classroom",
-            default : null
-        }
-    ],
-    progress : [
-        {
-            type : mongoose.Schema.Types.ObjectId,
-            ref : "class",
-            default : null
-        }
-    ],
-    attendence : [
-        {
-            type : mongoose.Schema.Types.ObjectId,
-            ref : "class",
-            default : null
-        }
-    ],
-    messages : {
-        type : mongoose.Schema.Types.ObjectId,
-        ref : "message",
-        default : none
+    isAccountVerified: {
+        type: Boolean,
+        default: false
     },
-    additionalDetails : {
-        type : mongoose.Schema.Types,
-        ref : "setting",
+    token: {
+        type: String
     },
-    isAccountVerified : {
-        type : String,
-        default : false
+    resetOtp: {
+        type: String,
+        default: ""
     },
-    token : {
-        type : String
-    },
-    resetOtp : {
-        type : String,
-        default : ""
-    },
-    resetPasswordExpires : {
-        type : Date
+    resetPasswordExpires: {
+        type: Date
     }
-});
+}, { timestamps: true });   // optional, adds createdAt & updatedAt
 
-module.exports = model("user",userSchema);
+module.exports = mongoose.model("user", userSchema);

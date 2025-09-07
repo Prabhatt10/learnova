@@ -15,8 +15,9 @@ const otpSchema = new mongoose.Schema ({
         type : Date,
         default : Date.now,
         expires : 5 * 60 
-    }
-});
+    },
+},
+{ timestamps: true }); 
 
 exports.sendVerificationEmail = async (email,otp) => {
     try{
@@ -34,4 +35,4 @@ exports.sendVerificationEmail = async (email,otp) => {
     }
 }
 
-module.exports = model("otp",otpSchema);
+module.exports = mongoose.model("otp",otpSchema);

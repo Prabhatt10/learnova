@@ -2,11 +2,11 @@ const USER = require("../model/user");
 const OTP = require("../model/otp");
 const otpGenerator = require("otp-generator");
 const {mailVerificationTemplate} = require("../mailTemplate/verification");
-const {mailSender} = require("../util/mailSender");
+const mailSender = require("../util/mailSender");
 const bcrypt = require("bcrypt");
 const {generateAccessToken , generateRefreshToken} = require("../util/token");
-const { use } = require("react");
 require("dotenv").config();
+const jwt = require("jsonwebtoken");
 
 
 
@@ -37,7 +37,7 @@ exports.signUp = async (req,res) => {
         }
 
         // find most recent OTP
-        const recentOTP = await OTP.findOne({email}).sort({createdAt :-1}).limit(1);
+        const recentOTP = await OTP.findOne({ email }).sort({ createdAt: -1 });
 
         if (!recentOTP) {
             return res.status(400).json({
@@ -46,12 +46,16 @@ exports.signUp = async (req,res) => {
             });
         }
 
-        if(otp != recentOTP.otp){
+        // console.log("otp :" , otp),
+        // console.log("recent otp : ", recentOTP.otp);
+
+        if (String(otp).trim() !== String(recentOTP.otp).trim()) {
             return res.status(400).json({
-                success : false,
-                message : "Wrong OTP, Please enter correct OTP"
+                success: false,
+                message: "Wrong OTP, Please enter correct OTP"
             });
         }
+
 
         const hashedPassword = await bcrypt.hash(password,10);
 
@@ -109,7 +113,7 @@ exports.signUp = async (req,res) => {
         console.log(error);
         return res.status(500).json({
             success : false,
-            message : error.message
+            message : "code fatt gya registration me"
         });
     }
 }
@@ -119,25 +123,27 @@ exports.sendRegistrationOtp = async (req,res) => {
     try{
         const {email} = req.body;
         const checkUserPresent = await USER.findOne({email});
-        if(checkUserPresent){
-            return res.status(400).json({
-                success : false,
-                message : "User already present, Cant Send the registration OTP"
-            });
+
+        if (checkUserPresent) {
+            if (checkUserPresent.isAccountVerified) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Account is already verified",
+                });
+            } else {
+                return res.status(400).json({
+                    success: false,
+                    message: "User already present, cannot send registration OTP",
+                });
+            }
         }
 
-        if(checkUserPresent.isAccountVerified){
-            return res.json({
-                success: false,
-                message: "Account is already verified",
-            });
-        }
 
         // generate otp
         var otp = otpGenerator.generate(6,{
             upperCaseAlphabets : false,
             lowerCaseAlphabets : false,
-            specialCharacter : false
+            specialChars: false,
         });
 
         let result = await OTP.findOne({otp});
@@ -146,12 +152,12 @@ exports.sendRegistrationOtp = async (req,res) => {
             otp = otpGenerator.generate(6,{
                 upperCaseAlphabets : false,
                 lowerCaseAlphabets : false,
-                specialCharacter : false
+                specialChars: false,
             });
-            result = await OTP.findOne({otp : otp});
+            result = await OTP.findOne({otp});
         }
 
-        console.log(otp);
+        console.log("this is the otp : " ,otp);
 
         const otpPayload = {email,otp};
 
@@ -169,6 +175,12 @@ exports.sendRegistrationOtp = async (req,res) => {
                 message : "Can't send OTP, Please try again later"
             });
         }
+
+        // const registrationMail = await mailSender(
+        //     email,
+        //     "Registration Confirmation OTP",
+        //     `Enter this OTP to confirm Registration ${otp}`
+        // );
 
         return res.status(200).json({
             success : true,
@@ -224,7 +236,7 @@ exports.login = async (req,res) => {
             { expiresIn: "24h" }
         );
 
-        console.log("token is : ", token);
+        // console.log("token is : ", token);
 
         // create refresh token and access token
         const accessToken = await generateAccessToken(user._id);
@@ -247,6 +259,8 @@ exports.login = async (req,res) => {
 
         user.password = undefined;
 
+        // console.log(user.password);
+
         return res.status(200).json({
             success : true,
             message : "User logged in successfully",
@@ -254,13 +268,14 @@ exports.login = async (req,res) => {
             accessToken,
             token,
             user
-        })
+        });
 
 
     } catch (error) {
         console.log(error);
         return res.status(500).json({
             success : false,
+            message : error.message,
             message : "Internal Server error while login, Please try again after some"
         });
     }
