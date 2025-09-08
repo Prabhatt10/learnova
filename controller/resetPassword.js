@@ -2,11 +2,12 @@ const USER = require("../model/user");
 const mailSender = require("../util/mailSender");
 const jwt = require('jsonwebtoken');
 const OTP = require("../model/otp");
-
+const otpGenerator = require("otp-generator");
+const bcrypt = require("bcrypt");
 
 exports.resetPasswordByOtp = async (req,res) => {
     try {
-        const email = req.body;
+        const {email} = req.body;
         if(!email) {
             return res.status(400).json({
                 success : false,
@@ -26,7 +27,7 @@ exports.resetPasswordByOtp = async (req,res) => {
         var otp = otpGenerator.generate(6,{
             upperCaseAlphabets : false,
             lowerCaseAlphabets : false,
-            specialCharacter : false
+            specialChars : false
         });
 
         let result = await OTP.findOne({otp});
@@ -35,13 +36,15 @@ exports.resetPasswordByOtp = async (req,res) => {
             otp = otpGenerator.generate(6,{
                 upperCaseAlphabets : false,
                 lowerCaseAlphabets : false,
-                specialCharacter : false
+                specialChars : false
             });
-            result = await OTP.findOne({otp : otp});
+            result = await OTP.findOne({otp});
         }
 
+        console.log("otp is : ", otp);
+
         await USER.findOneAndUpdate(
-            { email }, // find user by email
+            {email}, // find user by email
             {
                 resetOtp: otp,
                 resetPasswordExpires: Date.now() + 5 * 60 * 1000
@@ -64,6 +67,17 @@ exports.resetPasswordByOtp = async (req,res) => {
             });
         }
 
+        // const sendOtpMail = await mailSender(
+        //     email,
+        //     `Request to change passsword`,
+        //     `OTP to change password is : ${otp}`
+        // );
+
+        return res.status(200).json({
+            success : false,
+            message : "Otp for changing passsword send successfully"
+        });
+        
     } catch (error) {
         console.log(error);
         return res.status(500).json({
